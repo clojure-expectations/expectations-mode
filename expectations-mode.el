@@ -72,4 +72,6 @@
   ;;   (expectations-init))
   )
 
+(provide 'expectations-mode)
+
 ;;; expectations-mode.el ends here
