@@ -61,6 +61,7 @@
 (defvar expectations-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c ,") 'expectations-run-tests)
+    (define-key map (kbd "C-c C-,") 'expectations-run-tests)
     (define-key map (kbd "C-c k") 'expectations-test-clear)
     map))
 
@@ -70,7 +71,5 @@
   ;; (when (slime-connected-p)
   ;;   (expectations-init))
   )
-
-
 
 ;;; expectations-mode.el ends here
