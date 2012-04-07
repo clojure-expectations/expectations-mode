@@ -22,6 +22,6 @@ shown in the minibuffer and the full output will be in the slime repl.
 
 ## License
 
-Initially based upon (Clojure Test Mode)[https://github.com/technomancy/clojure-mode/blob/master/clojure-test-mode.el].
+Initially based upon [Clojure Test Mode](https://github.com/technomancy/clojure-mode/blob/master/clojure-test-mode.el).
 
 Distributed under the GNU General Public License; see C-h t to view.
