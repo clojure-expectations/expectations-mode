@@ -3,3 +3,4 @@ src/
 test/
 project.clj
 .lein*
+checkouts/
