@@ -133,17 +133,18 @@
   (interactive)
   (save-some-buffers nil (lambda () (equal major-mode 'clojure-mode)))
   (message "Testing...")
-  (expectations-test-clear)
-  (save-window-excursion
-    (clojure-test-clear
-     (lambda (&rest args)
-       (slime-eval-async `(swank:load-file
-                           ,(slime-to-lisp-filename
-                             (expand-file-name (buffer-file-name))))
-         (lambda (&rest args)
-           (slime-eval-async '(swank:interactive-eval
-                               "(expectations/run-tests [*ns*])")
-             #'expectations-get-results)))))))
+  (expectations-test-clear
+   (lambda (&rest args)
+     (save-window-excursion
+       (clojure-test-clear
+        (lambda (&rest args)
+          (slime-eval-async `(swank:load-file
+                              ,(slime-to-lisp-filename
+                                (expand-file-name (buffer-file-name))))
+            (lambda (&rest args)
+              (slime-eval-async '(swank:interactive-eval
+                                  "(expectations/run-tests [*ns*])")
+                #'expectations-get-results)))))))))
 
 (defun expectations-show-result ()
   (interactive)
