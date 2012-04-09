@@ -7,6 +7,8 @@ mode](https://github.com/technomancy/clojure-mode/blob/master/clojure-test-mode.
 
 ## Installation
 
+*Please note Expectations v1.3.7 or greater is required to use expectations-mode.*
+
 Download expectations-mode.el, put it somewhere on your Emacs load
 path, and require it inside of init.el.
 
