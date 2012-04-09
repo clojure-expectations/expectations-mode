@@ -1,6 +1,9 @@
 # Expectations Mode
 
-A minor Emacs mode for running Expectations tests.
+A minor Emacs mode for running
+[Expectations](https://github.com/jaycfields/expectations), based upon
+[Clojure test
+mode](https://github.com/technomancy/clojure-mode/blob/master/clojure-test-mode.el).
 
 ## Installation
 
@@ -11,17 +14,24 @@ path, and require it inside of init.el.
 (require 'expectations-mode)
 ```
 
+This will add a `clojure-mode-hook` to enable `expectations-mode`
+whenever a Clojure test file is opened that has referenced
+Expectations through a `:use` in the namespace.
+
 ## Usage
 
-There is no hook to enable expectations-mode at the moment, so you
-need to do that manually with `M-x expectations-mode`.
+Current key mappings are:
 
-There are very basic features currently, only the ability to run the
-tests with `C-c ,` or `C-c C-,`. The expectations summary will be
-shown in the minibuffer and the full output will be in the slime repl.
+```
+C-c ,    run tests in ns
+C-c C-,  run tests in ns
+C-c C-k  clear test results
+C-c '    show message for test under cursor
+```
 
+The keybindings are a subset of the bindings used in
+`clojure-test-mode` and work the same way.
+ 
 ## License
-
-Initially based upon [Clojure Test Mode](https://github.com/technomancy/clojure-mode/blob/master/clojure-test-mode.el).
 
 Distributed under the GNU General Public License; see C-h t to view.
