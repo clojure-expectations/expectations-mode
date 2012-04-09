@@ -71,10 +71,8 @@
         expectations-failure-count 0
         expectations-error-count   0)
   (expectations-eval
-   "(let [current *ns*]
-      (in-ns 'expectations)
-      (expectations/disable-run-on-shutdown)
-      (in-ns (ns-name current)))
+   "(require 'expectations)
+    (expectations/disable-run-on-shutdown)
     (doseq [[a b] (ns-interns *ns*)
             :when ((meta b) :expectation)]
       (ns-unmap *ns* a))"
@@ -163,9 +161,33 @@
     (define-key map (kbd "C-c '")   'expectations-show-result)
     map))
 
+;;;###autoload
 (define-minor-mode expectations-mode
   "A minor mode for running expectations tests"
-  nil " Test" expectations-mode-map)
+  nil " Expectations" expectations-mode-map)
+
+(defun expectations-has-expectations-p ()
+  (interactive)
+  (let ((regexp "\(:use.*expectations[\.scenarios]?"))
+    (save-excursion
+      (or (re-search-backward regexp nil t)
+          (re-search-forward regexp nil t)))))
+
+;;;###autoload
+(progn
+  (defun expectations-maybe-enable ()
+    "Enable expectations-mode and disable clojure-test-mode if
+the current buffer contains a namespace with a \"test.\" bit on
+it."
+    (let ((ns (clojure-find-package))) ; defined in clojure-mode.el
+      (when (and ns
+                 (string-match "test\\(\\.\\|$\\)" ns)
+                 (expectations-has-expectations-p))
+        (save-window-excursion
+          (expectations-mode t)
+          (clojure-test-mode 0)))))
+  (add-hook 'clojure-mode-hook 'expectations-maybe-enable)
+  (remove-hook 'clojure-mode-hook 'clojure-test-maybe-enable))
 
 (provide 'expectations-mode)
 
