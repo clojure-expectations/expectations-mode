@@ -165,9 +165,12 @@
   "A minor mode for running expectations tests"
   nil " Expectations" expectations-mode-map)
 
+(defvar expectations-use-regexp
+  (rx "(:use" (* anything) "expectations"))
+
 (defun expectations-has-expectations-p ()
   (interactive)
-  (let ((regexp "\(:use.*expectations[\.scenarios]?"))
+  (let ((regexp expectations-use-regexp))
     (save-excursion
       (or (re-search-backward regexp nil t)
           (re-search-forward regexp nil t)))))
