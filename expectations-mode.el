@@ -1,7 +1,7 @@
 ;;; expectations-mode.el --- Minor mode for expectations tests
 
 ;; Author: Gareth Jones <gareth.e.jones@gmail.com>
-;; Version: 0.0.1
+;; Version: 0.0.2
 ;; Keywords: languages, lisp, test
 ;; Package-Requires: ((slime "20091016") (clojure-mode "1.7"))
 
@@ -14,6 +14,16 @@
 ;; buffer about which tests failed or errored.
 
 ;; This library is based on the clojure-test-mode by Phil Hagelberg.
+
+;;; History:
+
+;; 0.0.1: 2012-04-10
+;;  * initial release
+
+;; 0.0.2: 2012-04-21
+;;  * dont remove clojure-mode-hook for clojure-test-mode
+;;  * you must now have your expectations files in an 'expectations'
+;;    ns for the mode to automatically turn on.
 
 ;;; Code:
 
@@ -121,11 +131,10 @@
     (expectations-echo-results)))
 
 (defun expectations-get-results (result)
-  (expectations-eval
-   (concat "(for [[n s] (ns-interns *ns*)
-                  :let [m (meta s)]
-                  :when (:expectation m)]
-              (apply list (:status m)))")
+  (expectations-eval "(for [[n s] (ns-interns *ns*)
+                            :let [m (meta s)]
+                            :when (:expectation m)]
+                        (apply list (:status m)))"
    #'expectations-extract-results))
 
 (defun expectations-run-tests ()
@@ -165,31 +174,18 @@
   "A minor mode for running expectations tests"
   nil " Expectations" expectations-mode-map)
 
-(defvar expectations-use-regexp
-  (rx "(:use" (* anything) "expectations"))
-
-(defun expectations-has-expectations-p ()
-  (interactive)
-  (let ((regexp expectations-use-regexp))
-    (save-excursion
-      (or (re-search-backward regexp nil t)
-          (re-search-forward regexp nil t)))))
-
 ;;;###autoload
 (progn
   (defun expectations-maybe-enable ()
     "Enable expectations-mode and disable clojure-test-mode if
 the current buffer contains a namespace with a \"test.\" bit on
 it."
-    (let ((ns (clojure-find-package))) ; defined in clojure-mode.el
-      (when (and ns
-                 (string-match "test\\(\\.\\|$\\)" ns)
-                 (expectations-has-expectations-p))
+    (let ((ns (clojure-find-package)))  ; defined in clojure-mode.el
+      (when (search "expectations." ns)
         (save-window-excursion
           (expectations-mode t)
           (clojure-test-mode 0)))))
-  (add-hook 'clojure-mode-hook 'expectations-maybe-enable)
-  (remove-hook 'clojure-mode-hook 'clojure-test-maybe-enable))
+  (add-hook 'clojure-mode-hook 'expectations-maybe-enable))
 
 (provide 'expectations-mode)
 

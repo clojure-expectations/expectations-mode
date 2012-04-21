@@ -17,8 +17,25 @@ path, and require it inside of init.el.
 ```
 
 This will add a `clojure-mode-hook` to enable `expectations-mode`
-whenever a Clojure test file is opened that has referenced
-Expectations through a `:use` in the namespace.
+whenever a Clojure test file is opened that has a namespace with
+'expectations.' inside of it.
+
+For example...
+
+```lisp
+(ns myproject.expectations.core
+  (:use expectations))
+```
+
+...will cause `expectations-mode` to automatically activate. Where as
+namespaces like:
+
+```lisp
+(ns myproject.test.core
+  (:use clojure.test))
+```
+
+...will be ignored.
 
 ## Usage
 
@@ -34,6 +51,10 @@ C-c '    show message for test under cursor
 The keybindings are a subset of the bindings used in
 `clojure-test-mode` and work the same way.
  
+The shortcuts to run individual tests are not required, as you
+generally use the `-focus` version of the expectations macros to run
+an expectation in isolation.
+
 ## License
 
 Distributed under the GNU General Public License; see C-h t to view.
