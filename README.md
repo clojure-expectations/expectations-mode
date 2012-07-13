@@ -9,12 +9,26 @@ mode](https://github.com/technomancy/clojure-mode/blob/master/clojure-test-mode.
 
 *Please note Expectations v1.3.7 or greater is required to use expectations-mode.*
 
-Download expectations-mode.el, put it somewhere on your Emacs load
-path, and require it inside of init.el.
+You can either install the package manually or use the package manager package.el. 
+
+To install using the package manager, add the marmalade repo to your package-archives:
+
+```lisp
+(require 'package)
+(add-to-list 'package-archives
+             '("marmalade" . "http://marmalade-repo.org/packages/") t)
+```
+
+And package-install expectations-mode in the usual way.
+
+To install manually, download expectations-mode.el, put it somewhere on your Emacs load
+path, and require it inside of init.el
 
 ```lisp
 (require 'expectations-mode)
 ```
+
+
 
 This will add a `clojure-mode-hook` to enable `expectations-mode`
 whenever a Clojure test file is opened that has a namespace with
