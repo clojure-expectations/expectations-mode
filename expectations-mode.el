@@ -10,7 +10,7 @@
 ;;; Commentary:
 
 ;; This file provides support for running Clojure tests (using the
-;; expectations framework) via SLIME and seeing feedback in the test
+;; expectations framework) via nrepl and seeing feedback in the test
 ;; buffer about which tests failed or errored.
 
 ;; This library is based on the clojure-test-mode by Phil Hagelberg.
