@@ -5,6 +5,11 @@ A minor Emacs mode for running
 [Clojure test
 mode](https://github.com/technomancy/clojure-mode/blob/master/clojure-test-mode.el).
 
+## Important
+
+Versions 0.0.2 and lower use swank, version 0.0.3 and greater use
+nrepl. Going forward, I will only be supporting the nrepl code.
+
 ## Installation
 
 *Please note Expectations v1.3.7 or greater is required to use expectations-mode.*
@@ -28,16 +33,17 @@ path, and require it inside of init.el
 (require 'expectations-mode)
 ```
 
-
-
 This will add a `clojure-mode-hook` to enable `expectations-mode`
 whenever a Clojure test file is opened that has a namespace with
-'expectations.' inside of it.
+'expectations.' or '-expectations' inside of it.
 
-For example...
+For example namespaces like...
 
 ```lisp
 (ns myproject.expectations.core
+  (:use expectations))
+
+(ns myproject.core-expectations
   (:use expectations))
 ```
 
@@ -50,6 +56,16 @@ namespaces like:
 ```
 
 ...will be ignored.
+
+## Colours
+
+Expectations colourises its output by default. To turn this off and
+get rid of the annoying characters in your output, add this to your
+init.el in an appropriate place:
+
+```lisp
+(setenv "EXPECTATIONS_COLORIZE" "false")
+```
 
 ## Usage
 
