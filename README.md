@@ -69,12 +69,15 @@ init.el in an appropriate place:
 
 ## Usage
 
+Please note you must compile/load the test ns before you can run the
+tests. Use the `C-c C-k` keybinding in nrepl.
+
 Current key mappings are:
 
 ```
 C-c ,    run tests in ns
 C-c C-,  run tests in ns
-C-c C-k  clear test results
+C-c k    clear test results
 C-c '    show message for test under cursor
 ```
 
