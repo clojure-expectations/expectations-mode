@@ -1,9 +1,9 @@
 ;;; expectations-mode.el --- Minor mode for expectations tests
 
 ;; Author: Gareth Jones <gareth.e.jones@gmail.com>
-;; Version: 0.0.2
+;; Version: 0.0.3
 ;; Keywords: languages, lisp, test
-;; Package-Requires: ((slime "20091016") (clojure-mode "1.7"))
+;; Package-Requires: ((nrepl "0.1.5") (clojure-mode "1.11"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -25,10 +25,15 @@
 ;;  * you must now have your expectations files in an 'expectations'
 ;;    ns for the mode to automatically turn on.
 
+;; 0.0.3: 2012-10-23
+;;  * ported to run on nrepl
+;;  * changed regexp for looking for expectations mode to match
+;; foo-expectations also
+
 ;;; Code:
 
 (require 'clojure-mode)
-(require 'slime)
+(require 'nrepl)
 
 (defface expectations-failure-face
   '((((class color) (background light))
@@ -66,12 +71,22 @@
   '(:success :fail :error)
   "Results we are interested in reporting on")
 
-(defun expectations-eval (string &optional handler)
-  (slime-eval-async `(swank:eval-and-grab-output ,string)
-    (or handler #'identity)))
+(defun expectations-response-handler (callback)
+  (lexical-let ((buffer (current-buffer))
+                (callback callback))
+    (nrepl-make-response-handler buffer
+                                 (lambda (buffer value)
+                                   (funcall callback buffer value))
+                                 (lambda (buffer value)
+                                   (nrepl-emit-interactive-output value))
+                                 (lambda (buffer err)
+                                   (message (format "%s" err)))
+                                 '())))
 
-(defun expectations-eval-sync (string)
-  (slime-eval `(swank:eval-and-grab-output ,string)))
+(defun expectations-eval (string &optional handler)
+  (nrepl-send-string string
+                     (expectations-response-handler (or handler #'identity))
+                     (nrepl-current-ns)))
 
 (defun expectations-test-clear (&optional callback)
   "Clear all counters and unmap generated vars for expectations"
@@ -81,11 +96,12 @@
         expectations-failure-count 0
         expectations-error-count   0)
   (expectations-eval
-   "(require 'expectations)
-    (expectations/disable-run-on-shutdown)
-    (doseq [[a b] (ns-interns *ns*)
-            :when ((meta b) :expectation)]
-      (ns-unmap *ns* a))"
+   "(do
+      (require 'expectations)
+      (expectations/disable-run-on-shutdown)
+      (doseq [[a b] (ns-interns *ns*)
+              :when ((meta b) :expectation)]
+        (ns-unmap *ns* a)))"
    callback))
 
 (defun expectations-highlight-problem (line event msg)
@@ -107,12 +123,11 @@
    ((equal :error event) (incf expectations-error-count))))
 
 (defun expectations-extract-result (result)
-  (let ((event (car result)))
-    (expectations-inc-counter-for event)
-    (when (or (eq :fail (car result))
-              (eq :error (car result)))
-      (destructuring-bind (event msg line) (coerce result 'list)
-        (expectations-highlight-problem line event msg)))))
+  (expectations-inc-counter-for (car result))
+  (when (or (eq :fail (car result))
+            (eq :error (car result)))
+    (destructuring-bind (event msg line) (coerce result 'list)
+      (expectations-highlight-problem line event msg))))
 
 (defun expectations-echo-results ()
   (message
@@ -125,17 +140,23 @@
           ((not (= expectations-failure-count 0)) 'expectations-failure-face)
           (t 'expectations-success-face)))))
 
-(defun expectations-extract-results (results)
-  (let ((result-vars (read (cadr results))))
-    (mapc #'expectations-extract-result result-vars)
-    (expectations-echo-results)))
+(defun expectations-extract-results (buffer value)
+  (with-current-buffer buffer
+    (let ((results (read value)))
+      (mapc #'expectations-extract-result results)
+      (expectations-echo-results))))
 
-(defun expectations-get-results (result)
-  (expectations-eval "(for [[n s] (ns-interns *ns*)
-                            :let [m (meta s)]
-                            :when (:expectation m)]
-                        (apply list (:status m)))"
-   #'expectations-extract-results))
+(defun expectations-run-and-extract-results (buffer value)
+  (with-current-buffer buffer
+    (nrepl-load-current-buffer)
+    (expectations-eval
+     "(do
+        (expectations/run-tests [*ns*])
+        (for [[n s] (ns-interns *ns*)
+              :let [m (meta s)]
+              :when (:expectation m)]
+          (apply list (:status m))))"
+     #'expectations-extract-results)))
 
 (defun expectations-run-tests ()
   "Run all the tests in the current namespace."
@@ -143,15 +164,7 @@
   (save-some-buffers nil (lambda () (equal major-mode 'clojure-mode)))
   (message "Testing...")
   (save-window-excursion
-    (expectations-test-clear
-     (lambda (&rest args)
-       (slime-eval-async `(swank:load-file
-                           ,(slime-to-lisp-filename
-                             (expand-file-name (buffer-file-name))))
-         (lambda (&rest args)
-           (slime-eval-async '(swank:interactive-eval
-                               "(expectations/run-tests [*ns*])")
-             #'expectations-get-results)))))))
+    (expectations-test-clear #'expectations-run-and-extract-results)))
 
 (defun expectations-show-result ()
   (interactive)
@@ -181,7 +194,8 @@
 the current buffer contains a namespace with a \"test.\" bit on
 it."
     (let ((ns (clojure-find-package)))  ; defined in clojure-mode.el
-      (when (search "expectations." ns)
+      (when (or (search "expectations." ns)
+                (search "-expectations" ns))
         (save-window-excursion
           (expectations-mode t)
           (clojure-test-mode 0)))))
