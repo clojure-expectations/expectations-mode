@@ -1,7 +1,7 @@
 ;;; expectations-mode.el --- Minor mode for expectations tests
 
 ;; Author: Gareth Jones <gareth.e.jones@gmail.com>
-;; Version: 0.0.3
+;; Version: 0.0.4
 ;; Keywords: languages, lisp, test
 ;; Package-Requires: ((nrepl "0.1.5") (clojure-mode "1.11"))
 
@@ -29,6 +29,9 @@
 ;;  * ported to run on nrepl
 ;;  * changed regexp for looking for expectations mode to match
 ;; foo-expectations also
+
+;; 0.0.4: 2012-10-25
+;;  * fix issue with having to compile tests before running
 
 ;;; Code:
 
