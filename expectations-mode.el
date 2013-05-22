@@ -86,12 +86,16 @@
                                    (message (format "%s" err)))
                                  '())))
 
-(defun expectations-eval (string &optional handler)
-  (nrepl-send-string string
-                     (expectations-response-handler (or handler #'identity))
-                     (nrepl-current-ns)))
+(defun expectations-eval (string &optional handler synch)
+  (if synch
+      (funcall handler (current-buffer)
+               (plist-get (nrepl-send-string-sync string (nrepl-current-ns)) :value)
+               synch)
+    (nrepl-send-string string
+                       (expectations-response-handler (or handler #'identity))
+                       (nrepl-current-ns))))
 
-(defun expectations-test-clear (&optional callback)
+(defun expectations-test-clear (&optional callback synch)
   "Clear all counters and unmap generated vars for expectations"
   (interactive)
   (remove-overlays)
@@ -106,7 +110,7 @@
       (doseq [[a b] (ns-interns *ns*)
               :when ((meta b) :expectation)]
         (ns-unmap *ns* a)))"
-   callback))
+   callback synch))
 
 (defun expectations-highlight-problem (line event msg)
   (save-excursion
@@ -144,13 +148,13 @@
           ((not (= expectations-failure-count 0)) 'expectations-failure-face)
           (t 'expectations-success-face)))))
 
-(defun expectations-extract-results (buffer value)
+(defun expectations-extract-results (buffer value &optional synch)
   (with-current-buffer buffer
     (let ((results (read value)))
       (mapc #'expectations-extract-result results)
       (expectations-echo-results))))
 
-(defun expectations-run-and-extract-results (buffer value)
+(defun expectations-run-and-extract-results (buffer value &optional synch)
   (with-current-buffer buffer
     (nrepl-load-current-buffer)
     (expectations-eval
@@ -160,15 +164,16 @@
               :let [m (meta s)]
               :when (:expectation m)]
           (apply list (:status m))))"
-     #'expectations-extract-results)))
+     #'expectations-extract-results
+     synch)))
 
-(defun expectations-run-tests ()
+(defun expectations-run-tests (&optional synch)
   "Run all the tests in the current namespace."
   (interactive)
   (save-some-buffers nil (lambda () (equal major-mode 'clojure-mode)))
   (message "Testing...")
   (save-window-excursion
-    (expectations-test-clear #'expectations-run-and-extract-results)))
+    (expectations-test-clear #'expectations-run-and-extract-results synch)))
 
 (defun expectations-show-result ()
   (interactive)
