@@ -102,7 +102,6 @@
   (setq expectations-count         0
         expectations-failure-count 0
         expectations-error-count   0)
-  (nrepl-load-current-buffer)
   (expectations-eval
    "(do
       (require 'expectations)
