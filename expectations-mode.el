@@ -74,25 +74,28 @@
   '(:success :fail :error)
   "Results we are interested in reporting on")
 
-(defun expectations-response-handler (callback)
+(defun expectations-response-handler (callback stdout-handler)
   (lexical-let ((buffer (current-buffer))
-                (callback callback))
+                (callback callback)
+                (stdout-handler stdout-handler))
     (nrepl-make-response-handler buffer
                                  (lambda (buffer value)
                                    (funcall callback buffer value))
                                  (lambda (buffer value)
+                                   (when stdout-handler
+                                     (funcall stdout-handler value))
                                    (nrepl-emit-interactive-output value))
                                  (lambda (buffer err)
                                    (message (format "%s" err)))
                                  '())))
 
-(defun expectations-eval (string &optional handler synch)
+(defun expectations-eval (string &optional handler stdout-handler synch)
   (if synch
       (funcall handler (current-buffer)
                (plist-get (nrepl-send-string-sync string (nrepl-current-ns)) :value)
                synch)
     (nrepl-send-string string
-                       (expectations-response-handler (or handler #'identity))
+                       (expectations-response-handler (or handler #'identity) stdout-handler)
                        (nrepl-current-ns))))
 
 (defun expectations-test-clear (&optional callback synch)
@@ -109,7 +112,7 @@
       (doseq [[a b] (ns-interns *ns*)
               :when ((meta b) :expectation)]
         (ns-unmap *ns* a)))"
-   callback synch))
+   callback nil synch))
 
 (defun expectations-highlight-problem (line event msg)
   (save-excursion
@@ -137,6 +140,7 @@
       (expectations-highlight-problem line event msg))))
 
 (defun expectations-echo-results ()
+  (expectations-update-compilation-buffer-mode-line)
   (message
    (propertize
     (format "Ran %s tests. %s failures, %s errors."
@@ -153,17 +157,19 @@
       (mapc #'expectations-extract-result results)
       (expectations-echo-results))))
 
-(defun expectations-run-and-extract-results (buffer value &optional synch)
+(defun expectations-run-and-extract-results (runner-fn buffer value &optional synch)
+  (expectations-kill-compilation-buffer)
   (with-current-buffer buffer
     (nrepl-load-current-buffer)
     (expectations-eval
-     "(do
-        (expectations/run-tests [*ns*])
+     (format "(do
+        %s
         (for [[n s] (ns-interns *ns*)
               :let [m (meta s)]
               :when (:expectation m)]
-          (apply list (:status m))))"
+          (apply list (:status m))))" (funcall runner-fn))
      #'expectations-extract-results
+     #'expectations-display-compilation-buffer
      synch)))
 
 (defun expectations-run-tests (&optional synch)
@@ -172,7 +178,8 @@
   (save-some-buffers nil (lambda () (equal major-mode 'clojure-mode)))
   (message "Testing...")
   (save-window-excursion
-    (expectations-test-clear #'expectations-run-and-extract-results synch)))
+    (expectations-test-clear (apply-partially #'expectations-run-and-extract-results
+                                              (lambda () "(expectations/run-tests [*ns*])")) synch)))
 
 (defun expectations-show-result ()
   (interactive)
@@ -186,6 +193,7 @@
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c ,")   'expectations-run-tests)
     (define-key map (kbd "C-c C-,") 'expectations-run-tests)
+    (define-key map (kbd "C-c M-,") 'expectations-run-test)
     (define-key map (kbd "C-c k")   'expectations-test-clear)
     (define-key map (kbd "C-c '")   'expectations-show-result)
     map))
@@ -208,6 +216,68 @@ it."
           (expectations-mode t)
           (clojure-test-mode 0)))))
   (add-hook 'clojure-mode-hook 'expectations-maybe-enable))
+
+;; Compilation mode spike
+
+(defun expectations-extract-filename ()
+  (let* ((ns (match-string 2))
+         (filename
+          (read
+           (plist-get (nrepl-send-string-sync (format "(-> \"%s\" symbol ns-publics first val meta :file)" ns)
+                                              (nrepl-current-ns))
+                      :value))))
+    (list filename)))
+
+(defun expectations-kill-compilation-buffer ()
+  (when (get-buffer "*expectations*")
+    (delete-windows-on (get-buffer "*expectations*"))
+    (kill-buffer "*expectations*")))
+
+(defun expectations-update-compilation-buffer-mode-line ()
+  (with-current-buffer (get-buffer "*expectations*")
+    (compilation-handle-exit  (cond ((not (= expectations-error-count 0)) "error")
+                                    ((not (= expectations-failure-count 0)) "failure")
+                                    (t "success"))
+                              (+ expectations-failure-count expectations-error-count) "")))
+
+(defun expectations-display-compilation-buffer (out)
+  (with-current-buffer (get-buffer-create "*expectations*")
+    (expectations-results-mode)
+    (nrepl-emit-into-color-buffer (current-buffer) out)
+    (display-buffer (current-buffer))
+    (setq next-error-last-buffer (current-buffer))
+    (compilation-set-window-height (get-buffer-window "*expectations*"))))
+
+(add-to-list 'compilation-error-regexp-alist 'expectations)
+(add-to-list 'compilation-error-regexp-alist-alist
+             '(expectations "\\(?:failure\\|error\\) in (.+:\\([[:digit:]]+\\)) : \\(.+\\)"
+                            expectations-extract-filename
+                            1))
+
+(define-compilation-mode expectations-results-mode "Expectations" ""
+  (setq compilation-window-height 10))
+
+;; Running single tests
+
+(defun expectations-test-at-point ()
+  (interactive)
+  (let ((clj (format "(first (filter (fn [v] (>= (-> v meta :line) %d))
+                                     (sort-by (comp :line meta) (vals (ns-publics (find-ns '%s))))))"
+                     (line-number-at-pos)
+                     (nrepl-current-ns))))
+    (plist-get (nrepl-send-string-sync clj (nrepl-current-ns)) :value)))
+
+(defun expectations-run-test (&optional synch)
+  "Run test at point"
+  (interactive)
+  (save-some-buffers nil (lambda () (equal major-mode 'clojure-mode)))
+  (message "Testing...")
+  (save-window-excursion
+    (expectations-test-clear (apply-partially #'expectations-run-and-extract-results
+                                              (lambda ()
+                                                (format
+                                                 "(when-let [t %s] (expectations/run-tests-in-vars [t]))"
+                                                 (expectations-test-at-point)))) synch)))
 
 (provide 'expectations-mode)
 
