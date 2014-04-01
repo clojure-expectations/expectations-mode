@@ -36,7 +36,8 @@
 ;;; Code:
 
 (require 'clojure-mode)
-(require 'nrepl)
+(require 'nrepl-client)
+(require 'cider-interaction)
 
 (defface expectations-failure-face
   '((((class color) (background light))
@@ -84,7 +85,7 @@
                                  (lambda (buffer value)
                                    (when stdout-handler
                                      (funcall stdout-handler value))
-                                   (nrepl-emit-interactive-output value))
+                                   (cider-repl-emit-interactive-output value))
                                  (lambda (buffer err)
                                    (message (format "%s" err)))
                                  '())))
@@ -92,11 +93,11 @@
 (defun expectations-eval (string &optional handler stdout-handler synch)
   (if synch
       (funcall handler (current-buffer)
-               (plist-get (nrepl-send-string-sync string (nrepl-current-ns)) :value)
+               (plist-get (nrepl-send-string-sync string (cider-current-ns)) :value)
                synch)
     (nrepl-send-string string
                        (expectations-response-handler (or handler #'identity) stdout-handler)
-                       (nrepl-current-ns))))
+                       (cider-current-ns))))
 
 (defun expectations-test-clear (&optional callback synch)
   "Clear all counters and unmap generated vars for expectations"
@@ -160,7 +161,7 @@
 (defun expectations-run-and-extract-results (runner-fn buffer value &optional synch)
   (expectations-kill-compilation-buffer)
   (with-current-buffer buffer
-    (nrepl-load-current-buffer)
+    (cider-load-current-buffer)
     (expectations-eval
      (format "(do
         %s
@@ -224,7 +225,7 @@ it."
          (filename
           (read
            (plist-get (nrepl-send-string-sync (format "(-> \"%s\" symbol ns-publics first val meta :file)" ns)
-                                              (nrepl-current-ns))
+                                              (cider-current-ns))
                       :value))))
     (list filename)))
 
@@ -243,7 +244,7 @@ it."
 (defun expectations-display-compilation-buffer (out)
   (with-current-buffer (get-buffer-create "*expectations*")
     (expectations-results-mode)
-    (nrepl-emit-into-color-buffer (current-buffer) out)
+    (cider-emit-into-color-buffer (current-buffer) out)
     (display-buffer (current-buffer))
     (setq next-error-last-buffer (current-buffer))
     (compilation-set-window-height (get-buffer-window "*expectations*"))))
@@ -264,8 +265,8 @@ it."
   (let ((clj (format "(first (filter (fn [v] (>= (-> v meta :line) %d))
                                      (sort-by (comp :line meta) (vals (ns-publics (find-ns '%s))))))"
                      (line-number-at-pos)
-                     (nrepl-current-ns))))
-    (plist-get (nrepl-send-string-sync clj (nrepl-current-ns)) :value)))
+                     (cider-current-ns))))
+    (plist-get (nrepl-send-string-sync clj (cider-current-ns)) :value)))
 
 (defun expectations-run-test (&optional synch)
   "Run test at point"
