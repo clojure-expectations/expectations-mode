@@ -244,7 +244,7 @@ it."
 (defun expectations-display-compilation-buffer (out)
   (with-current-buffer (get-buffer-create "*expectations*")
     (expectations-results-mode)
-    (nrepl-emit-into-color-buffer (current-buffer) out)
+    (cider-emit-into-color-buffer (current-buffer) out)
     (display-buffer (current-buffer))
     (setq next-error-last-buffer (current-buffer))
     (compilation-set-window-height (get-buffer-window "*expectations*"))))
