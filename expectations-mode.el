@@ -161,6 +161,7 @@
   (expectations-kill-compilation-buffer)
   (with-current-buffer buffer
     (cider-load-current-buffer)
+	(sleep-for 0 100)
     (expectations-eval
      (format "(do
         %s
