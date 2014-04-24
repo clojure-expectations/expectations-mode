@@ -231,8 +231,10 @@ it."
 
 (defun expectations-kill-compilation-buffer ()
   (when (get-buffer "*expectations*")
-    (delete-windows-on (get-buffer "*expectations*"))
-    (kill-buffer "*expectations*")))
+    ; (delete-windows-on (get-buffer "*expectations*"))
+    (kill-buffer "*expectations*")
+	
+	))
 
 (defun expectations-update-compilation-buffer-mode-line ()
   (with-current-buffer (get-buffer "*expectations*")
