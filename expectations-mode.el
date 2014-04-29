@@ -85,7 +85,8 @@
                                  (lambda (buffer value)
                                    (when stdout-handler
                                      (funcall stdout-handler value))
-                                   (cider-repl-emit-interactive-output value))
+                                   ; (cider-repl-emit-interactive-output value)
+								   )
                                  (lambda (buffer err)
                                    (message (format "%s" err)))
                                  '())))
