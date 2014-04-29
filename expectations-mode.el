@@ -69,6 +69,7 @@
 (defvar expectations-count         0)
 (defvar expectations-failure-count 0)
 (defvar expectations-error-count   0)
+(defvar latch 0)
 
 (defconst expectations-valid-results
   '(:success :fail :error)
@@ -90,7 +91,7 @@
                                  '())))
 
 (defun expectations-eval (string &optional handler stdout-handler synch)
-  (if synch
+	(if synch
       (funcall handler (current-buffer)
                (plist-get (nrepl-send-string-sync string (cider-current-ns)) :value)
                synch)
@@ -138,7 +139,7 @@
             (eq :error (car result)))
     (destructuring-bind (event msg line) (coerce result 'list)
       (expectations-highlight-problem line event msg))))
-
+	
 (defun expectations-echo-results ()
   (expectations-update-compilation-buffer-mode-line)
   (message
@@ -231,25 +232,31 @@ it."
 
 (defun expectations-kill-compilation-buffer ()
   (when (get-buffer "*expectations*")
-    ; (delete-windows-on (get-buffer "*expectations*"))
-    (kill-buffer "*expectations*")
-	
-	))
+    (kill-buffer "*expectations*")))
 
 (defun expectations-update-compilation-buffer-mode-line ()
-  (with-current-buffer (get-buffer "*expectations*")
+  (with-current-buffer (get-buffer-create "*expectations*")
     (compilation-handle-exit  (cond ((not (= expectations-error-count 0)) "error")
                                     ((not (= expectations-failure-count 0)) "failure")
                                     (t "success"))
                               (+ expectations-failure-count expectations-error-count) "")))
 
+
+(defun expectations-any-failures (out)
+	(not (string-match "0 failures, 0 errors" out)))
+		
 (defun expectations-display-compilation-buffer (out)
   (with-current-buffer (get-buffer-create "*expectations*")
     (expectations-results-mode)
     (cider-emit-into-color-buffer (current-buffer) out)
     (display-buffer (current-buffer))
     (setq next-error-last-buffer (current-buffer))
-    (compilation-set-window-height (get-buffer-window "*expectations*"))))
+    (compilation-set-window-height (get-buffer-window "*expectations*"))
+	(when (string-match "Ran .* tests containing .* assertions in" out)
+		(when (not (expectations-any-failures out))
+			(expectations-kill-compilation-buffer)
+			(expectations-update-compilation-buffer-mode-line)
+			))))
 
 (add-to-list 'compilation-error-regexp-alist 'expectations)
 (add-to-list 'compilation-error-regexp-alist-alist
