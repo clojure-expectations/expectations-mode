@@ -159,21 +159,26 @@
       (mapc #'expectations-extract-result results)
       (expectations-echo-results))))
 
+(defun expectations-run-and-extract-results-after-load (runner-fn buffer value &optional synch)
+	(remove-hook 'cider-file-loaded-hook (first cider-file-loaded-hook))
+	(with-current-buffer buffer	
+	(expectations-eval
+		(format "(do
+    %s
+    (for [[n s] (ns-interns *ns*)
+          :let [m (meta s)]
+          :when (:expectation m)]
+      (apply list (:status m))))" (funcall runner-fn))
+	  #'expectations-extract-results
+ 	 #'expectations-display-compilation-buffer
+	 synch)))
+	 
 (defun expectations-run-and-extract-results (runner-fn buffer value &optional synch)
   (expectations-kill-compilation-buffer)
-  (with-current-buffer buffer
-    (cider-load-current-buffer)
-	(sleep-for 0 100)
-    (expectations-eval
-     (format "(do
-        %s
-        (for [[n s] (ns-interns *ns*)
-              :let [m (meta s)]
-              :when (:expectation m)]
-          (apply list (:status m))))" (funcall runner-fn))
-     #'expectations-extract-results
-     #'expectations-display-compilation-buffer
-     synch)))
+  (with-current-buffer buffer	
+	  (let ((fn (apply-partially #'expectations-run-and-extract-results-after-load runner-fn buffer value synch)))
+	(add-hook 'cider-file-loaded-hook fn)
+    (cider-load-current-buffer))))
 
 (defun expectations-run-tests (&optional synch)
   "Run all the tests in the current namespace."
