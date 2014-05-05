@@ -36,7 +36,7 @@
 ;;; Code:
 
 (require 'clojure-mode)
-(require 'nrepl)
+(require 'cider)
 
 (defface expectations-failure-face
   '((((class color) (background light))
@@ -69,6 +69,7 @@
 (defvar expectations-count         0)
 (defvar expectations-failure-count 0)
 (defvar expectations-error-count   0)
+(defvar latch 0)
 
 (defconst expectations-valid-results
   '(:success :fail :error)
@@ -84,19 +85,20 @@
                                  (lambda (buffer value)
                                    (when stdout-handler
                                      (funcall stdout-handler value))
-                                   (nrepl-emit-interactive-output value))
+                                   ; (cider-repl-emit-interactive-output value)
+								   )
                                  (lambda (buffer err)
                                    (message (format "%s" err)))
                                  '())))
 
 (defun expectations-eval (string &optional handler stdout-handler synch)
-  (if synch
+	(if synch
       (funcall handler (current-buffer)
-               (plist-get (nrepl-send-string-sync string (nrepl-current-ns)) :value)
+               (plist-get (nrepl-send-string-sync string (cider-current-ns)) :value)
                synch)
     (nrepl-send-string string
                        (expectations-response-handler (or handler #'identity) stdout-handler)
-                       (nrepl-current-ns))))
+                       (cider-current-ns))))
 
 (defun expectations-test-clear (&optional callback synch)
   "Clear all counters and unmap generated vars for expectations"
@@ -138,7 +140,7 @@
             (eq :error (car result)))
     (destructuring-bind (event msg line) (coerce result 'list)
       (expectations-highlight-problem line event msg))))
-
+	
 (defun expectations-echo-results ()
   (expectations-update-compilation-buffer-mode-line)
   (message
@@ -157,20 +159,26 @@
       (mapc #'expectations-extract-result results)
       (expectations-echo-results))))
 
+(defun expectations-run-and-extract-results-after-load (runner-fn buffer value &optional synch)
+	(remove-hook 'cider-file-loaded-hook (first cider-file-loaded-hook))
+	(with-current-buffer buffer	
+	(expectations-eval
+		(format "(do
+    %s
+    (for [[n s] (ns-interns *ns*)
+          :let [m (meta s)]
+          :when (:expectation m)]
+      (apply list (:status m))))" (funcall runner-fn))
+	  #'expectations-extract-results
+ 	 #'expectations-display-compilation-buffer
+	 synch)))
+	 
 (defun expectations-run-and-extract-results (runner-fn buffer value &optional synch)
   (expectations-kill-compilation-buffer)
-  (with-current-buffer buffer
-    (nrepl-load-current-buffer)
-    (expectations-eval
-     (format "(do
-        %s
-        (for [[n s] (ns-interns *ns*)
-              :let [m (meta s)]
-              :when (:expectation m)]
-          (apply list (:status m))))" (funcall runner-fn))
-     #'expectations-extract-results
-     #'expectations-display-compilation-buffer
-     synch)))
+  (with-current-buffer buffer	
+	  (let ((fn (apply-partially #'expectations-run-and-extract-results-after-load runner-fn buffer value synch)))
+	(add-hook 'cider-file-loaded-hook fn)
+    (cider-load-current-buffer))))
 
 (defun expectations-run-tests (&optional synch)
   "Run all the tests in the current namespace."
@@ -224,29 +232,37 @@ it."
          (filename
           (read
            (plist-get (nrepl-send-string-sync (format "(-> \"%s\" symbol ns-publics first val meta :file)" ns)
-                                              (nrepl-current-ns))
+                                              (cider-current-ns))
                       :value))))
     (list filename)))
 
 (defun expectations-kill-compilation-buffer ()
   (when (get-buffer "*expectations*")
-    (delete-windows-on (get-buffer "*expectations*"))
     (kill-buffer "*expectations*")))
 
 (defun expectations-update-compilation-buffer-mode-line ()
-  (with-current-buffer (get-buffer "*expectations*")
+  (with-current-buffer (get-buffer-create "*expectations*")
     (compilation-handle-exit  (cond ((not (= expectations-error-count 0)) "error")
                                     ((not (= expectations-failure-count 0)) "failure")
                                     (t "success"))
                               (+ expectations-failure-count expectations-error-count) "")))
 
+
+(defun expectations-any-failures (out)
+	(not (string-match "0 failures, 0 errors" out)))
+		
 (defun expectations-display-compilation-buffer (out)
   (with-current-buffer (get-buffer-create "*expectations*")
     (expectations-results-mode)
-    (nrepl-emit-into-color-buffer (current-buffer) out)
+    (cider-emit-into-color-buffer (current-buffer) out)
     (display-buffer (current-buffer))
     (setq next-error-last-buffer (current-buffer))
-    (compilation-set-window-height (get-buffer-window "*expectations*"))))
+    (compilation-set-window-height (get-buffer-window "*expectations*"))
+	(when (string-match "Ran .* tests containing .* assertions in" out)
+		(when (not (expectations-any-failures out))
+			(expectations-kill-compilation-buffer)
+			(expectations-update-compilation-buffer-mode-line)
+			))))
 
 (add-to-list 'compilation-error-regexp-alist 'expectations)
 (add-to-list 'compilation-error-regexp-alist-alist
@@ -264,8 +280,8 @@ it."
   (let ((clj (format "(first (filter (fn [v] (>= (-> v meta :line) %d))
                                      (sort-by (comp :line meta) (vals (ns-publics (find-ns '%s))))))"
                      (line-number-at-pos)
-                     (nrepl-current-ns))))
-    (plist-get (nrepl-send-string-sync clj (nrepl-current-ns)) :value)))
+                     (cider-current-ns))))
+    (plist-get (nrepl-send-string-sync clj (cider-current-ns)) :value)))
 
 (defun expectations-run-test (&optional synch)
   "Run test at point"
