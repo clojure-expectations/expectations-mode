@@ -253,25 +253,20 @@ it."
 		
 (defun expectations-display-compilation-buffer (out)
   (with-current-buffer (get-buffer-create "*expectations*")
-    (expectations-results-mode)
-    (cider-emit-into-color-buffer (current-buffer) out)
-    (display-buffer (current-buffer))
+   (cider-emit-into-color-buffer (current-buffer) out)
     (setq next-error-last-buffer (current-buffer))
-    (compilation-set-window-height (get-buffer-window "*expectations*"))
 	(when (string-match "Ran .* tests containing .* assertions in" out)
-		(when (not (expectations-any-failures out))
-			(expectations-kill-compilation-buffer)
-			(expectations-update-compilation-buffer-mode-line)
-			))))
+		(if (not (expectations-any-failures out))
+			(progn
+				(expectations-kill-compilation-buffer)
+				(expectations-update-compilation-buffer-mode-line))
+			(display-buffer (current-buffer))))))
 
 (add-to-list 'compilation-error-regexp-alist 'expectations)
 (add-to-list 'compilation-error-regexp-alist-alist
              '(expectations "\\(?:failure\\|error\\) in (.+:\\([[:digit:]]+\\)) : \\(.+\\)"
                             expectations-extract-filename
                             1))
-
-(define-compilation-mode expectations-results-mode "Expectations" ""
-  (setq compilation-window-height 10))
 
 ;; Running single tests
 
