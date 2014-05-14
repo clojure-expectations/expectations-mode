@@ -84,9 +84,7 @@
                                    (funcall callback buffer value))
                                  (lambda (buffer value)
                                    (when stdout-handler
-                                     (funcall stdout-handler value))
-                                   ; (cider-repl-emit-interactive-output value)
-								   )
+                                     (funcall stdout-handler value)))
                                  (lambda (buffer err)
                                    (message (format "%s" err)))
                                  '())))
@@ -118,7 +116,9 @@
 
 (defun expectations-highlight-problem (line event msg)
   (save-excursion
-    (goto-line line)
+	(if (not (eq 1 line))
+		    (goto-line line)
+			(live-paredit-previous-top-level-form))
     (let ((beg (point)))
       (end-of-line)
       (let ((overlay (make-overlay beg (point))))
