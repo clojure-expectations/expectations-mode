@@ -69,7 +69,20 @@
 (defvar expectations-count         0)
 (defvar expectations-failure-count 0)
 (defvar expectations-error-count   0)
-(defvar latch 0)
+(defvar expectations-failure-lines '())
+
+
+
+;; Rotate through failed test results
+(defun list-rotate-left (l)
+	(nconc (rest l) (list (first l))))
+
+(defun exepctations-go-to-next-failure ()
+	(interactive)
+	(message (concat "Going to line " (string (first expectations-failure-lines))))
+	(goto-line (first expectations-failure-lines))
+	(setq expectations-failure-lines (list-rotate-left expectations-failure-lines)))
+
 
 (defconst expectations-valid-results
   '(:success :fail :error)
@@ -104,7 +117,8 @@
   (remove-overlays)
   (setq expectations-count         0
         expectations-failure-count 0
-        expectations-error-count   0)
+        expectations-error-count   0
+		expectations-failure-lines '())
   (expectations-eval
    "(do
       (require 'expectations)
@@ -138,8 +152,9 @@
   (expectations-inc-counter-for (car result))
   (when (or (eq :fail (car result))
             (eq :error (car result)))
-    (destructuring-bind (event msg line) (coerce result 'list)
-      (expectations-highlight-problem line event msg))))
+			(destructuring-bind (event msg line) (coerce result 'list)
+			(expectations-highlight-problem line event msg)
+			(setq expectations-failure-lines (sort (add-to-list 'expectations-failure-lines line) '<)))))
 	
 (defun expectations-echo-results ()
   (expectations-update-compilation-buffer-mode-line)
@@ -204,6 +219,7 @@
     (define-key map (kbd "C-c M-,") 'expectations-run-test)
     (define-key map (kbd "C-c k")   'expectations-test-clear)
     (define-key map (kbd "C-c '")   'expectations-show-result)
+	(define-key map (kbd "C-c `")   'exepctations-go-to-next-failure)
     map))
 
 ;;;###autoload
