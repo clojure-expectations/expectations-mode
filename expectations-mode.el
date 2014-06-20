@@ -79,7 +79,6 @@
 
 (defun exepctations-go-to-next-failure ()
 	(interactive)
-	(message (concat "Going to line " (string (first expectations-failure-lines))))
 	(goto-line (first expectations-failure-lines))
 	(setq expectations-failure-lines (list-rotate-left expectations-failure-lines)))
 
@@ -266,10 +265,31 @@ it."
 
 (defun expectations-any-failures (out)
 	(not (string-match "0 failures, 0 errors" out)))
-		
+
+(defface exepctations-failure-face
+    '()
+    "Face for failures in expectations tests."
+    :group 'expectations-mode)
+
+(defun expectations-goto-failure-button (out button)
+	(if (string-match "in (\\(.*.clj\\):\\([[:digit:]]+\\)) :" out)
+		(let ((buffer (match-string 1 out))
+		  (line (string-to-number (match-string 2 out))))
+		  		(exepctations-goto-failure buffer line))))
+			
+(defun exepctations-goto-failure (buffer line)
+	(switch-to-buffer (get-buffer-create buffer))
+	(goto-line line))
+
 (defun expectations-display-compilation-buffer (out)
   (with-current-buffer (get-buffer-create "*expectations*")
-   (cider-emit-into-color-buffer (current-buffer) out)
+    ;(cider-emit-into-color-buffer (current-buffer) out)
+    (let ((fn (apply-partially #'expectations-goto-failure-button out)))
+    		(insert-text-button out
+    			'face 'exepctations-failure-face
+    			'mouse-face 'exepctations-failure-face
+        		'action fn
+    			'follow-link t))
     (setq next-error-last-buffer (current-buffer))
 	(when (string-match "Ran .* tests containing .* assertions in" out)
 		(if (not (expectations-any-failures out))
