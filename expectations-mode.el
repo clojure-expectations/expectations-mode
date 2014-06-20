@@ -278,19 +278,20 @@ it."
 		  		(exepctations-goto-failure buffer line))))
 			
 (defun exepctations-goto-failure (buffer line)
-	(switch-to-buffer (get-buffer-create buffer))
+	(switch-to-buffer-other-window (get-buffer-create buffer))
 	(goto-line line))
 
 (defun expectations-display-compilation-buffer (out)
   (with-current-buffer (get-buffer-create "*expectations*")
-    ;(cider-emit-into-color-buffer (current-buffer) out)
-    (let ((fn (apply-partially #'expectations-goto-failure-button out)))
+	(if (string-match "\\(?:failure\\|error\\) in" out)
+		(let ((fn (apply-partially #'expectations-goto-failure-button out)))
     		(insert-text-button out
     			'face 'exepctations-failure-face
     			'mouse-face 'exepctations-failure-face
         		'action fn
     			'follow-link t))
-    (setq next-error-last-buffer (current-buffer))
+		(princ out (current-buffer)))
+	(setq next-error-last-buffer (current-buffer))
 	(when (string-match "Ran .* tests containing .* assertions in" out)
 		(if (not (expectations-any-failures out))
 			(progn
