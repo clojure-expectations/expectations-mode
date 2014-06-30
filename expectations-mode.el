@@ -232,7 +232,7 @@
     "Enable expectations-mode and disable clojure-test-mode if
 the current buffer contains a namespace with a \"test.\" bit on
 it."
-    (let ((ns (clojure-find-package)))  ; defined in clojure-mode.el
+    (let ((ns (clojure-find-ns)))  ; defined in clojure-mode.el
       (when (or (search "expectations." ns)
                 (search "-expectations" ns))
         (save-window-excursion
