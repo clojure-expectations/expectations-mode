@@ -69,7 +69,19 @@
 (defvar expectations-count         0)
 (defvar expectations-failure-count 0)
 (defvar expectations-error-count   0)
-(defvar latch 0)
+(defvar expectations-failure-lines '())
+
+
+
+;; Rotate through failed test results
+(defun list-rotate-left (l)
+	(nconc (rest l) (list (first l))))
+
+(defun exepctations-go-to-next-failure ()
+	(interactive)
+	(goto-line (first expectations-failure-lines))
+	(setq expectations-failure-lines (list-rotate-left expectations-failure-lines)))
+
 
 (defconst expectations-valid-results
   '(:success :fail :error)
@@ -84,9 +96,7 @@
                                    (funcall callback buffer value))
                                  (lambda (buffer value)
                                    (when stdout-handler
-                                     (funcall stdout-handler value))
-                                   ; (cider-repl-emit-interactive-output value)
-								   )
+                                     (funcall stdout-handler value)))
                                  (lambda (buffer err)
                                    (message (format "%s" err)))
                                  '())))
@@ -106,7 +116,8 @@
   (remove-overlays)
   (setq expectations-count         0
         expectations-failure-count 0
-        expectations-error-count   0)
+        expectations-error-count   0
+		expectations-failure-lines '())
   (expectations-eval
    "(do
       (require 'expectations)
@@ -118,7 +129,9 @@
 
 (defun expectations-highlight-problem (line event msg)
   (save-excursion
-    (goto-line line)
+	(if (not (eq 1 line))
+		    (goto-line line)
+			(live-paredit-previous-top-level-form))
     (let ((beg (point)))
       (end-of-line)
       (let ((overlay (make-overlay beg (point))))
@@ -138,8 +151,9 @@
   (expectations-inc-counter-for (car result))
   (when (or (eq :fail (car result))
             (eq :error (car result)))
-    (destructuring-bind (event msg line) (coerce result 'list)
-      (expectations-highlight-problem line event msg))))
+			(destructuring-bind (event msg line) (coerce result 'list)
+			(expectations-highlight-problem line event msg)
+			(setq expectations-failure-lines (sort (add-to-list 'expectations-failure-lines line) '<)))))
 	
 (defun expectations-echo-results ()
   (expectations-update-compilation-buffer-mode-line)
@@ -204,6 +218,7 @@
     (define-key map (kbd "C-c M-,") 'expectations-run-test)
     (define-key map (kbd "C-c k")   'expectations-test-clear)
     (define-key map (kbd "C-c '")   'expectations-show-result)
+	(define-key map (kbd "C-c `")   'exepctations-go-to-next-failure)
     map))
 
 ;;;###autoload
@@ -217,7 +232,7 @@
     "Enable expectations-mode and disable clojure-test-mode if
 the current buffer contains a namespace with a \"test.\" bit on
 it."
-    (let ((ns (clojure-find-package)))  ; defined in clojure-mode.el
+    (let ((ns (clojure-find-ns)))  ; defined in clojure-mode.el
       (when (or (search "expectations." ns)
                 (search "-expectations" ns))
         (save-window-excursion
@@ -250,28 +265,45 @@ it."
 
 (defun expectations-any-failures (out)
 	(not (string-match "0 failures, 0 errors" out)))
-		
+
+(defface exepctations-failure-face
+    '()
+    "Face for failures in expectations tests."
+    :group 'expectations-mode)
+
+(defun expectations-goto-failure-button (out button)
+	(if (string-match "in (\\(.*.clj\\):\\([[:digit:]]+\\)) :" out)
+		(let ((buffer (match-string 1 out))
+		  (line (string-to-number (match-string 2 out))))
+		  		(exepctations-goto-failure buffer line))))
+			
+(defun exepctations-goto-failure (buffer line)
+	(switch-to-buffer-other-window (get-buffer-create buffer))
+	(goto-line line))
+
 (defun expectations-display-compilation-buffer (out)
   (with-current-buffer (get-buffer-create "*expectations*")
-    (expectations-results-mode)
-    (cider-emit-into-color-buffer (current-buffer) out)
-    (display-buffer (current-buffer))
-    (setq next-error-last-buffer (current-buffer))
-    (compilation-set-window-height (get-buffer-window "*expectations*"))
+	(if (string-match "\\(?:failure\\|error\\) in" out)
+		(let ((fn (apply-partially #'expectations-goto-failure-button out)))
+    		(insert-text-button out
+    			'face 'exepctations-failure-face
+    			'mouse-face 'exepctations-failure-face
+        		'action fn
+    			'follow-link t))
+		(princ out (current-buffer)))
+	(setq next-error-last-buffer (current-buffer))
 	(when (string-match "Ran .* tests containing .* assertions in" out)
-		(when (not (expectations-any-failures out))
-			(expectations-kill-compilation-buffer)
-			(expectations-update-compilation-buffer-mode-line)
-			))))
+		(if (not (expectations-any-failures out))
+			(progn
+				(expectations-kill-compilation-buffer)
+				(expectations-update-compilation-buffer-mode-line))
+			(display-buffer (current-buffer))))))
 
 (add-to-list 'compilation-error-regexp-alist 'expectations)
 (add-to-list 'compilation-error-regexp-alist-alist
              '(expectations "\\(?:failure\\|error\\) in (.+:\\([[:digit:]]+\\)) : \\(.+\\)"
                             expectations-extract-filename
                             1))
-
-(define-compilation-mode expectations-results-mode "Expectations" ""
-  (setq compilation-window-height 10))
 
 ;; Running single tests
 
