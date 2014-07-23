@@ -3,7 +3,7 @@
 ;; Author: Gareth Jones <gareth.e.jones@gmail.com>
 ;; Version: 0.0.4
 ;; Keywords: languages, lisp, test
-;; Package-Requires: ((nrepl "0.1.5") (clojure-mode "1.11"))
+;; Package-Requires: ((cider "0.7.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -154,7 +154,7 @@
 			(destructuring-bind (event msg line) (coerce result 'list)
 			(expectations-highlight-problem line event msg)
 			(setq expectations-failure-lines (sort (add-to-list 'expectations-failure-lines line) '<)))))
-	
+
 (defun expectations-echo-results ()
   (expectations-update-compilation-buffer-mode-line)
   (message
@@ -175,7 +175,7 @@
 
 (defun expectations-run-and-extract-results-after-load (runner-fn buffer value &optional synch)
 	(remove-hook 'cider-file-loaded-hook (first cider-file-loaded-hook))
-	(with-current-buffer buffer	
+	(with-current-buffer buffer
 	(expectations-eval
 		(format "(do
     %s
@@ -186,10 +186,10 @@
 	  #'expectations-extract-results
  	 #'expectations-display-compilation-buffer
 	 synch)))
-	 
+
 (defun expectations-run-and-extract-results (runner-fn buffer value &optional synch)
   (expectations-kill-compilation-buffer)
-  (with-current-buffer buffer	
+  (with-current-buffer buffer
 	  (let ((fn (apply-partially #'expectations-run-and-extract-results-after-load runner-fn buffer value synch)))
 	(add-hook 'cider-file-loaded-hook fn)
     (cider-load-current-buffer))))
@@ -276,7 +276,7 @@ it."
 		(let ((buffer (match-string 1 out))
 		  (line (string-to-number (match-string 2 out))))
 		  		(exepctations-goto-failure buffer line))))
-			
+
 (defun exepctations-goto-failure (buffer line)
 	(switch-to-buffer-other-window (get-buffer-create buffer))
 	(goto-line line))
