@@ -102,7 +102,7 @@
                                  '())))
 
 (defun expectations-eval (string &optional handler stdout-handler synch)
-	(if synch
+  (if synch
       (funcall handler (current-buffer)
                (plist-get (nrepl-send-string-sync string (cider-current-ns)) :value)
                synch)
@@ -117,7 +117,7 @@
   (setq expectations-count         0
         expectations-failure-count 0
         expectations-error-count   0
-		expectations-failure-lines '())
+        expectations-failure-lines '())
   (expectations-eval
    "(do
       (require 'expectations)
@@ -129,9 +129,9 @@
 
 (defun expectations-highlight-problem (line event msg)
   (save-excursion
-	(if (not (eq 1 line))
-		    (goto-line line)
-			(live-paredit-previous-top-level-form))
+    (if (not (eq 1 line))
+        (goto-line line)
+      (live-paredit-previous-top-level-form))
     (let ((beg (point)))
       (end-of-line)
       (let ((overlay (make-overlay beg (point))))
@@ -151,8 +151,8 @@
   (expectations-inc-counter-for (car result))
   (when (or (eq :fail (car result))
             (eq :error (car result)))
-			(destructuring-bind (event msg line) (coerce result 'list)
-			(expectations-highlight-problem line event msg)
+    (destructuring-bind (event msg line) (coerce result 'list)
+      (expectations-highlight-problem line event msg)
 			(setq expectations-failure-lines (sort (add-to-list 'expectations-failure-lines line) '<)))))
 
 (defun expectations-echo-results ()
