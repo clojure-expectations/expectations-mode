@@ -267,37 +267,37 @@ it."
 	(not (string-match "0 failures, 0 errors" out)))
 
 (defface exepctations-failure-face
-    '()
-    "Face for failures in expectations tests."
-    :group 'expectations-mode)
+  '()
+  "Face for failures in expectations tests."
+  :group 'expectations-mode)
 
 (defun expectations-goto-failure-button (out button)
-	(if (string-match "in (\\(.*.clj\\):\\([[:digit:]]+\\)) :" out)
-		(let ((buffer (match-string 1 out))
-		  (line (string-to-number (match-string 2 out))))
-		  		(exepctations-goto-failure buffer line))))
+  (if (string-match "in (\\(.*.clj\\):\\([[:digit:]]+\\)) :" out)
+      (let ((buffer (match-string 1 out))
+            (line (string-to-number (match-string 2 out))))
+        (exepctations-goto-failure buffer line))))
 
 (defun exepctations-goto-failure (buffer line)
-	(switch-to-buffer-other-window (get-buffer-create buffer))
-	(goto-line line))
+  (switch-to-buffer-other-window (get-buffer-create buffer))
+  (goto-line line))
 
 (defun expectations-display-compilation-buffer (out)
   (with-current-buffer (get-buffer-create "*expectations*")
-	(if (string-match "\\(?:failure\\|error\\) in" out)
-		(let ((fn (apply-partially #'expectations-goto-failure-button out)))
-    		(insert-text-button out
-    			'face 'exepctations-failure-face
-    			'mouse-face 'exepctations-failure-face
-        		'action fn
-    			'follow-link t))
-		(princ out (current-buffer)))
-	(setq next-error-last-buffer (current-buffer))
-	(when (string-match "Ran .* tests containing .* assertions in" out)
-		(if (not (expectations-any-failures out))
-			(progn
-				(expectations-kill-compilation-buffer)
-				(expectations-update-compilation-buffer-mode-line))
-			(display-buffer (current-buffer))))))
+    (if (string-match "\\(?:failure\\|error\\) in" out)
+        (let ((fn (apply-partially #'expectations-goto-failure-button out)))
+          (insert-text-button out
+                              'face 'exepctations-failure-face
+                              'mouse-face 'exepctations-failure-face
+                              'action fn
+                              'follow-link t))
+      (princ out (current-buffer)))
+    (setq next-error-last-buffer (current-buffer))
+    (when (string-match "Ran .* tests containing .* assertions in" out)
+      (if (not (expectations-any-failures out))
+          (progn
+            (expectations-kill-compilation-buffer)
+            (expectations-update-compilation-buffer-mode-line))
+        (display-buffer (current-buffer))))))
 
 (add-to-list 'compilation-error-regexp-alist 'expectations)
 (add-to-list 'compilation-error-regexp-alist-alist
