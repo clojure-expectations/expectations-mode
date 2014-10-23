@@ -176,16 +176,21 @@
 (defun expectations-run-and-extract-results-after-load (runner-fn buffer value &optional synch)
   (remove-hook 'cider-file-loaded-hook (first cider-file-loaded-hook))
   (with-current-buffer buffer
-    (expectations-eval
-     (format "(do
-    %s
-    (for [[n s] (ns-interns *ns*)
-          :let [m (meta s)]
-          :when (:expectation m)]
-      (apply list (:status m))))" (funcall runner-fn))
-     #'expectations-extract-results
-     #'expectations-display-compilation-buffer
-     synch)))
+    (let ((print-length (expectations-eval "*print-length*" (lambda (x y z) y) #'identity t)))
+      (expectations-eval
+       (format "(do
+       (set! *print-length* false)
+       %s
+       (for [[n s] (ns-interns *ns*)
+             :let [m (meta s)]
+             :when (:expectation m)]
+        (apply list (:status m))))" (funcall runner-fn))
+       #'expectations-extract-results
+       #'expectations-display-compilation-buffer
+       synch)
+      (expectations-eval (format "(set! *print-length* %s)" print-length)
+                         (lambda (x y))
+                         #'identity))))
 
 (defun expectations-run-and-extract-results (runner-fn buffer value &optional synch)
   (expectations-kill-compilation-buffer)
