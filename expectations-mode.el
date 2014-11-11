@@ -1,7 +1,7 @@
 ;;; expectations-mode.el --- Minor mode for expectations tests
 
 ;; Author: Gareth Jones <gareth.e.jones@gmail.com>
-;; Version: 0.0.4
+;; Version: 0.0.5
 ;; Keywords: languages, lisp, test
 ;; Package-Requires: ((cider "0.7.0"))
 
@@ -32,6 +32,9 @@
 
 ;; 0.0.4: 2012-10-25
 ;;  * fix issue with having to compile tests before running
+
+;; 0.0.5: 2014-11-11
+;; * lots of fixes since previous release that never got released
 
 ;;; Code:
 
