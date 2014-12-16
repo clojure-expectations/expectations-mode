@@ -1,9 +1,9 @@
 ;;; expectations-mode.el --- Minor mode for expectations tests
 
 ;; Author: Gareth Jones <gareth.e.jones@gmail.com>
-;; Version: 0.0.5
+;; Version: 0.0.6
 ;; Keywords: languages, lisp, test
-;; Package-Requires: ((cider "0.7.0"))
+;; Package-Requires: ((cider "0.8.2"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -35,6 +35,9 @@
 
 ;; 0.0.5: 2014-11-11
 ;; * lots of fixes since previous release that never got released
+
+;; 0.0.6: 2014-12-11
+;; * upgrade cider dep to 0.8.2
 
 ;;; Code:
 
@@ -200,7 +203,7 @@
   (with-current-buffer buffer
     (let ((fn (apply-partially #'expectations-run-and-extract-results-after-load runner-fn buffer value synch)))
       (add-hook 'cider-file-loaded-hook fn)
-      (cider-load-current-buffer))))
+      (cider-load-buffer))))
 
 (defun expectations-run-tests (&optional synch)
   "Run all the tests in the current namespace."
