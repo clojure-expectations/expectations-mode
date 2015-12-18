@@ -110,7 +110,7 @@
 (defun expectations-eval (string &optional handler stdout-handler synch)
   (if synch
       (funcall handler (current-buffer)
-               (plist-get (nrepl-sync-request:eval string (cider-current-connection) (cider-current-session) (cider-current-ns)) :value)
+               (nrepl-dict-get (nrepl-sync-request:eval string (cider-current-connection) (cider-current-session) (cider-current-ns)) "value")
                synch)
 
     (cider-nrepl-send-request
@@ -262,9 +262,9 @@ it."
   (let* ((ns (match-string 2))
          (filename
           (read
-           (plist-get (nrepl-sync-request:eval (format "(-> \"%s\" symbol ns-publics first val meta :file)" ns)
+           (nrepl-dict-get (nrepl-sync-request:eval (format "(-> \"%s\" symbol ns-publics first val meta :file)" ns)
                                               (cider-current-connection) (cider-current-session) (cider-current-ns) )
-                      :value))))
+                      "value"))))
     (list filename)))
 
 (defun expectations-kill-compilation-buffer ()
