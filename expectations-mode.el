@@ -329,7 +329,7 @@ it."
                                      (sort-by (comp :line meta) (vals (ns-publics (find-ns '%s))))))"
                      (line-number-at-pos)
                      (cider-current-ns))))
-    (plist-get (nrepl-sync-request:eval clj (cider-current-connection) (cider-current-session) (cider-current-ns)) :value)))
+    (nrepl-dict-get (nrepl-sync-request:eval clj (cider-current-connection) (cider-current-session) (cider-current-ns)) "value")))
 
 (defun expectations-run-test (&optional synch)
   "Run test at point"
