@@ -1,6 +1,6 @@
 # Expectations Mode
 
-[![Circle CI](https://circleci.com/gh/camsaul/expectations-mode.svg?style=svg)](https://circleci.com/gh/camsaul/expectations-mode)
+[![Circle CI](https://circleci.com/gh/clojure-expectations/expectations-mode.svg?style=svg)](https://circleci.com/gh/clojure-expectations/expectations-mode)
 
 A minor Emacs mode for running
 [Expectations](https://github.com/jaycfields/expectations), based upon
