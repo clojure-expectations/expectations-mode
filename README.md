@@ -1,5 +1,7 @@
 # Expectations Mode
 
+[![Circle CI](https://circleci.com/gh/clojure-expectations/expectations-mode.svg?style=svg)](https://circleci.com/gh/clojure-expectations/expectations-mode)
+
 A minor Emacs mode for running
 [Expectations](https://github.com/jaycfields/expectations), based upon
 [Clojure test
@@ -14,7 +16,7 @@ nrepl. Going forward, I will only be supporting the nrepl code.
 
 *Please note Expectations v1.3.7 or greater is required to use expectations-mode.*
 
-You can either install the package manually or use the package manager package.el. 
+You can either install the package manually or use the package manager package.el.
 
 To install using the package manager, add the marmalade repo to your package-archives:
 
@@ -80,7 +82,7 @@ C-c '    show message for test under cursor
 
 The keybindings are a subset of the bindings used in
 `clojure-test-mode` and work the same way.
- 
+
 The shortcuts to run individual tests are not required, as you
 generally use the `-focus` version of the expectations macros to run
 an expectation in isolation.

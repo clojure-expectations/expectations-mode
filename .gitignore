@@ -4,3 +4,4 @@ test/
 project.clj
 .lein*
 checkouts/
+*flycheck*
