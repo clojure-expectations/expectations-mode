@@ -10,7 +10,7 @@ mode](https://github.com/technomancy/clojure-mode/blob/master/clojure-test-mode.
 ## Important
 
 Versions 0.0.2 and lower use swank, version 0.0.3 and greater use
-nrepl. Going forward, I will only be supporting the nrepl code.
+nrepl. Going forward, only nrepl will be supported.
 
 ## Installation
 
