@@ -22,6 +22,31 @@ jobs:
           paths:
             - clojure-expectations/expectations-mode
 
+  # install-cider:
+  #   docker:
+  #     - image: camsaul/docker-emacs-package-lint
+  #   working_directory: /home/circleci/clojure-expectations/expectations-mode/
+  #   steps:
+  #     - attach_workspace:
+  #         at: /home/circleci/
+  #     - restore_cache:
+  #         keys:
+  #           - cider-{{ .Branch }}-{{ .Revision }}
+  #           - cider-{{ .Branch }}
+  #           - cider-
+  #     - run:
+  #         name: Install CIDER
+  #         command: emacs -Q -nw -batch -l /home/circleci/clojure-expectations/expectations-mode/.circleci/install-cider.el
+  #         no_output_timeout: 5m
+  #     - save_cache:
+  #         key: cider-{{ .Branch }}-{{ .Revision }}
+  #         paths:
+  #           - /home/emacs/.emacs.d/elpa
+  #     - persist_to_workspace:
+  #         root: /home/emacs/
+  #         paths:
+  #           - .emacs.d/elpa
+
   package-lint:
     docker:
       - image: camsaul/docker-emacs-package-lint
@@ -30,14 +55,18 @@ jobs:
       - attach_workspace:
           at: /home/circleci/
       - run:
-          name: Run package-lint
+          name: Install cider locally & run package-lint
           command: emacs -Q -nw -batch -l /usr/local/package-lint.el -f package-lint-batch-and-exit expectations-mode.el
+          no_output_timeout: 5m
 
 workflows:
   version: 2
   build:
     jobs:
       - checkout
+      # - install-cider:
+      #     requires:
+      #       - checkout
       - package-lint:
           requires:
-            - checkout
+            # - install-cider
