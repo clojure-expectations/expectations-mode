@@ -1,24 +1,11 @@
 version: 2.1
 
-########################################################################################################################
-#                                                      EXECUTORS                                                       #
-########################################################################################################################
-
-executors:
-  default:
-    working_directory: /home/circleci/camsaul/expectations-mode/
-    docker:
-      - image: xueyouchao/docker-alpine-emacs
-
-
-########################################################################################################################
-#                                                       COMMANDS                                                       #
-########################################################################################################################
-
 jobs:
 
   checkout:
-    executor: default
+    docker:
+      - image: alpine/git
+    working_directory: /home/circleci/clojure-expectations/expectations-mode/
     steps:
       - restore_cache:
           keys:
@@ -33,42 +20,24 @@ jobs:
       - persist_to_workspace:
           root: /home/circleci/
           paths:
-            - camsaul/expectations-mode
-
-  fetch-package-lint:
-    executor: default
-    steps:
-      - restore_cache:
-          keys:
-            - package-lint-{{ .Branch }}-{{ .Revision }}
-            - package-lint-{{ .Branch }}
-            - package-lint-
-      - run: git clone https://github.com/purcell/package-lint.git /home/circleci/package-lint
-      - save_cache:
-          key: package-lint-{{ .Branch }}
-          paths:
-            - /home/circleci/package-lint/.git
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - package-lint
+            - clojure-expectations/expectations-mode
 
   package-lint:
-    executor: default
+    docker:
+      - image: camsaul/docker-emacs-package-lint
+    working_directory: /home/circleci/clojure-expectations/expectations-mode/
     steps:
       - attach_workspace:
           at: /home/circleci/
       - run:
           name: Run package-lint
-          command: emacs
+          command: emacs -Q -nw -batch -l /usr/local/package-lint.el -f package-lint-batch-and-exit expectations-mode.el
 
 workflows:
   version: 2
   build:
     jobs:
       - checkout
-      - fetch-package-lint
       - package-lint:
           requires:
             - checkout
-            - fetch-package-lint
