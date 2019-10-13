@@ -123,11 +123,16 @@
 (defun expectations-eval (string &optional handler stdout-handler synch)
   (if synch
       (funcall handler (current-buffer)
-               (plist-get (nrepl-send-string-sync string (cider-current-ns)) :value)
+               (nrepl-dict-get (nrepl-sync-request:eval string (cider-current-connection) (cider-current-session) (cider-current-ns)) "value")
                synch)
-    (nrepl-send-string string
-                       (expectations-response-handler (or handler #'identity) stdout-handler)
-                       (cider-current-ns))))
+
+    (cider-nrepl-send-request
+     (list "op" "eval"
+           "ns"   (cider-current-ns)
+           "code" string
+           "session" (cider-current-session))
+     (expectations-response-handler (or handler #'identity) stdout-handler))))
+
 
 (defun expectations-test-clear (&optional callback synch)
   "Clear all counters and unmap generated vars for expectations"
@@ -270,9 +275,9 @@ it."
   (let* ((ns (match-string 2))
          (filename
           (read
-           (plist-get (nrepl-send-string-sync (format "(-> \"%s\" symbol ns-publics first val meta :file)" ns)
-                                              (cider-current-ns))
-                      :value))))
+           (nrepl-dict-get (nrepl-sync-request:eval (format "(-> \"%s\" symbol ns-publics first val meta :file)" ns)
+                                              (cider-current-connection) (cider-current-session) (cider-current-ns) )
+                      "value"))))
     (list filename)))
 
 (defun expectations-kill-compilation-buffer ()
@@ -337,7 +342,7 @@ it."
                                      (sort-by (comp :line meta) (vals (ns-publics (find-ns '%s))))))"
                      (line-number-at-pos)
                      (cider-current-ns))))
-    (plist-get (nrepl-send-string-sync clj (cider-current-ns)) :value)))
+    (nrepl-dict-get (nrepl-sync-request:eval clj (cider-current-connection) (cider-current-session) (cider-current-ns)) "value")))
 
 (defun expectations-run-test (&optional synch)
   "Run test at point"
